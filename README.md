@@ -51,8 +51,32 @@ Payments are simulated. No card or UPI details are stored.
 
 This is a static Vite app (`base: "./"`).
 
-- **Vercel / Netlify / Cloudflare Pages:** connect this repo, build command `npm run build`, output `dist`
-- **GitHub Pages:** Actions workflow in `.github/workflows/pages.yml` publishes `dist` on every push to `main`
+### Cloudflare Pages (recommended)
+
+1. Open [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
+2. Select `aambrishtrikha-commits/salon-app`, branch `main`.
+3. Build settings:
+   - Framework preset: **Vite**
+   - Build command: `npm run build`
+   - Build output directory: `dist`
+4. **Save and Deploy**.
+5. After it is live, **Custom domains** if you want `salon.appd.ai` (or similar).
+
+CLI (if wrangler is logged in):
+
+```bash
+npm install
+npm run build
+npx wrangler pages deploy dist --project-name=creative-salon
+```
+
+`wrangler.toml` already sets `pages_build_output_dir = "dist"`.
+
+### Other hosts
+
+- **Netlify:** already connected. `netlify.toml` publishes `dist`.
+- **Vercel:** connect this repo, output `dist`.
+- **GitHub Pages:** workflow in `.github/workflows/pages.yml`.
 
 ## Stack
 
