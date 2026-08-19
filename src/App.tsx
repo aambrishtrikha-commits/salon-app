@@ -157,7 +157,7 @@ function CustomerApp({
           </div>
         )}
       </header>
-      <main className="content">
+      <main className={`content${view === "login" ? " login" : ""}`}>
         {view === "login" && <Login onEnter={onEnter} onOwner={onOwner} />}
         {view === "home" && customer && (
           <Home db={db} customer={customer} setView={setView} onRefresh={onRefresh} toast={toast} />
@@ -229,18 +229,21 @@ function Login({ onEnter, onOwner }: { onEnter: (p: string, n?: string) => void;
   const [phone, setPhone] = useState("");
   return (
     <>
-      <span className="kicker">Creative Salon</span>
-      <h2 className="hero-title">Quiet luxury, a few taps away.</h2>
-      <p className="lede">Book Rajesh, Priya or Amit. Keep a salon wallet. Earn when a friend completes their first paid visit.</p>
-      <label className="field" style={{ marginTop: 28 }}>
+      <div className="hero-shot">
+        <img src="./salon-hero.jpg" alt="Creative Salon, Pitampura" />
+      </div>
+      <span className="kicker">Pitampura · Delhi</span>
+      <h2 className="hero-title">Your salon. On your phone.</h2>
+      <p className="lede">Book Rajesh, Priya or Amit. Keep a wallet. Bring a friend back.</p>
+      <label className="field" style={{ marginTop: 22 }}>
         <span>Mobile number</span>
         <input inputMode="numeric" maxLength={10} placeholder="98765 43210" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} />
       </label>
       <button className="btn btn-primary" onClick={() => onEnter(phone)}>
         Continue
       </button>
-      <p className="kicker" style={{ marginTop: 28, marginBottom: 4 }}>
-        Try a guest profile
+      <p className="kicker" style={{ marginTop: 26, marginBottom: 4 }}>
+        Try a guest
       </p>
       {DEMOS.map((d) => (
         <button key={d.phone} className="btn btn-ghost demo-btn" onClick={() => onEnter(d.phone, d.name)}>

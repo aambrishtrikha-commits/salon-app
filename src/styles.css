@@ -1,12 +1,12 @@
 :root {
-  --bg: #efe8de;
-  --surface: #fbf7f1;
-  --surface-2: #e7dfd3;
-  --ink: #4a453e;
-  --muted: #8a837a;
-  --subtle: #9b948b;
+  --bg: #e6e0d6;
+  --surface: #fffcf8;
+  --surface-2: #f3eee6;
+  --ink: #1c1916;
+  --muted: #6f675d;
+  --subtle: #8a837a;
   --primary: #6f675d;
-  --primary-dark: #5a544c;
+  --primary-dark: #524c44;
   --accent: #7a3b32;
   --accent-soft: #f3e4dc;
   --border: color-mix(in oklab, #6f675d 22%, transparent);
@@ -118,6 +118,28 @@ input, select { font-family: inherit; font-size: 16px; }
 }
 .header-links { display: flex; align-items: center; gap: 14px; }
 .content { flex: 1; padding: 20px 20px 96px; }
+.content.login { padding-top: 0; }
+
+.hero-shot {
+  margin: 0 -20px 22px;
+  height: 168px;
+  overflow: hidden;
+  position: relative;
+}
+.hero-shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+  display: block;
+}
+.hero-shot::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 48px;
+  background: linear-gradient(to top, var(--surface), transparent);
+}
 
 .kicker {
   display: block;
@@ -125,15 +147,16 @@ input, select { font-family: inherit; font-size: 16px; }
   font-weight: 500;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--primary);
   margin-bottom: 8px;
 }
 .hero-title {
-  font-size: clamp(2rem, 7vw, 2.45rem);
-  line-height: 1.05;
+  font-size: clamp(2.15rem, 8vw, 2.7rem);
+  line-height: 1.02;
+  color: var(--ink);
   margin: 0 0 12px;
 }
-.lede { color: var(--muted); font-size: 15px; max-width: 34ch; }
+.lede { color: var(--muted); font-size: 15px; max-width: 36ch; line-height: 1.55; }
 
 .nav {
   position: sticky; bottom: 0;
@@ -170,7 +193,11 @@ input, select { font-family: inherit; font-size: 16px; }
   border: 1px solid var(--border-strong);
   color: var(--ink);
 }
-.btn-ghost { background: var(--surface-2); color: var(--ink); }
+.btn-ghost {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid color-mix(in oklab, var(--primary) 28%, transparent);
+}
 .btn-sm { min-height: 36px; width: auto; padding: 0 14px; font-size: 12px; border-radius: var(--radius-sm); letter-spacing: 0.06em; text-transform: uppercase; }
 
 .card {
