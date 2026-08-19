@@ -40,8 +40,8 @@ function Brand({ compact = false }: { compact?: boolean }) {
     <div className="brand">
       <div className="logo">C</div>
       <div>
-        <h1>Creative Salon</h1>
-        {!compact && <p>Pitampura, Delhi</p>}
+        <h1>Creative</h1>
+        {!compact && <p>Pitampura · Delhi</p>}
       </div>
     </div>
   );
@@ -147,11 +147,10 @@ function CustomerApp({
       <header className="header">
         <Brand compact={view !== "login"} />
         {view !== "login" && (
-          <div>
+          <div className="header-links">
             <button className="link" onClick={() => setView("profile")}>
               Profile
             </button>
-            {" · "}
             <button className="link" onClick={onOwner}>
               Owner
             </button>
@@ -179,10 +178,11 @@ function CustomerApp({
               ["home", "Home"],
               ["book", "Book"],
               ["wallet", "Wallet"],
-              ["bookings", "Bookings"],
+              ["bookings", "Visits"],
             ] as const
           ).map(([id, label]) => (
             <button key={id} className={view === id ? "active" : ""} onClick={() => setView(id)}>
+              <NavIcon name={id} />
               {label}
             </button>
           ))}
@@ -192,30 +192,65 @@ function CustomerApp({
   );
 }
 
+function NavIcon({ name }: { name: string }) {
+  const p = { fill: "none", stroke: "currentColor", strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  if (name === "home" || name === "dash") {
+    return (
+      <svg viewBox="0 0 24 24" {...p}>
+        <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z" />
+      </svg>
+    );
+  }
+  if (name === "book" || name === "bookings") {
+    return (
+      <svg viewBox="0 0 24 24" {...p}>
+        <rect x="4" y="5" width="16" height="15" rx="2" />
+        <path d="M8 3v4M16 3v4M4 10h16" />
+      </svg>
+    );
+  }
+  if (name === "wallet") {
+    return (
+      <svg viewBox="0 0 24 24" {...p}>
+        <rect x="3" y="6" width="18" height="13" rx="2" />
+        <path d="M16 12.5h.01M3 10h18" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" {...p}>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M4 19c.6-3 2.8-4.5 5-4.5s4.4 1.5 5 4.5M16 11h5M18.5 8.5v5" />
+    </svg>
+  );
+}
+
 function Login({ onEnter, onOwner }: { onEnter: (p: string, n?: string) => void; onOwner: () => void }) {
   const [phone, setPhone] = useState("");
   return (
     <>
-      <h2 style={{ fontSize: 28, margin: "12px 0 8px" }}>Your neighbourhood salon, on your phone</h2>
-      <p className="muted">Book Rajesh, Priya or Amit. Keep a salon wallet. Earn ₹100 when a friend completes their first paid visit.</p>
-      <label className="field" style={{ marginTop: 18 }}>
+      <span className="kicker">Creative Salon</span>
+      <h2 className="hero-title">Quiet luxury, a few taps away.</h2>
+      <p className="lede">Book Rajesh, Priya or Amit. Keep a salon wallet. Earn when a friend completes their first paid visit.</p>
+      <label className="field" style={{ marginTop: 28 }}>
         <span>Mobile number</span>
         <input inputMode="numeric" maxLength={10} placeholder="98765 43210" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} />
       </label>
       <button className="btn btn-primary" onClick={() => onEnter(phone)}>
         Continue
       </button>
-      <p className="muted" style={{ marginTop: 18, fontWeight: 700, textTransform: "uppercase", fontSize: 11, letterSpacing: 0.4 }}>
-        Try a demo profile
+      <p className="kicker" style={{ marginTop: 28, marginBottom: 4 }}>
+        Try a guest profile
       </p>
       {DEMOS.map((d) => (
-        <button key={d.phone} className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => onEnter(d.phone, d.name)}>
-          {d.name} · {d.phone}
+        <button key={d.phone} className="btn btn-ghost demo-btn" onClick={() => onEnter(d.phone, d.name)}>
+          <span className="who">{d.name}</span>
+          <span className="ph">{d.phone}</span>
         </button>
       ))}
-      <p style={{ textAlign: "center", marginTop: 18 }}>
+      <p style={{ textAlign: "center", marginTop: 22 }}>
         <button className="link" onClick={onOwner}>
-          Open owner dashboard
+          Open owner desk
         </button>
       </p>
     </>
@@ -240,9 +275,7 @@ function Home({
   return (
     <>
       <div className="wallet">
-        <div className="muted" style={{ color: "rgb(255 250 243 / 0.8)" }}>
-          Mera Salon Wallet
-        </div>
+        <div className="kicker">Salon wallet</div>
         <div className="amt tabular">{inr(customer.paidCredit + customer.bonusCredit)}</div>
         <div className="split">
           <div>
@@ -252,7 +285,7 @@ function Home({
             Bonus<strong className="tabular">{inr(customer.bonusCredit)}</strong>
           </div>
         </div>
-        <button className="btn btn-sm" style={{ marginTop: 12, background: "rgb(255 255 255 / 0.18)", color: "#fff" }} onClick={() => setView("wallet")}>
+        <button className="btn btn-sm" style={{ marginTop: 16, background: "rgb(251 247 241 / 0.1)", color: "#fbf7f1", border: "1px solid rgb(251 247 241 / 0.18)" }} onClick={() => setView("wallet")}>
           View ledger
         </button>
       </div>
@@ -279,18 +312,18 @@ function Home({
         Book a service
       </button>
       <div className="grid2" style={{ marginTop: 12 }}>
-        <button className="card" style={{ textAlign: "left" }} onClick={() => setView("refer")}>
-          <div className="muted">Refer & Earn</div>
+        <button className="card press" onClick={() => setView("refer")}>
+          <div className="kicker">Refer</div>
           <strong>₹100 credit</strong>
-          <div className="muted">For you + friend</div>
+          <div className="muted">For you and a friend</div>
         </button>
-        <button className="card" style={{ textAlign: "left" }} onClick={() => setView("bookings")}>
-          <div className="muted">My bookings</div>
+        <button className="card press" onClick={() => setView("bookings")}>
+          <div className="kicker">Visits</div>
           <strong>{db.bookings.filter((b) => b.customerId === customer.id).length}</strong>
-          <div className="muted">View history</div>
+          <div className="muted">Booking history</div>
         </button>
       </div>
-      <h3 style={{ margin: "8px 0" }}>Recent visits</h3>
+      <h3 className="section-title" style={{ marginTop: 20 }}>Recent visits</h3>
       <div className="card">
         {done.length === 0 && <div className="empty">No visits yet. Book your first service.</div>}
         {done.slice(0, 4).map((b) => (
@@ -497,7 +530,7 @@ function Wallet({ db, customer, onRefresh, toast }: { db: DB; customer: Customer
   return (
     <>
       <div className="wallet">
-        <div>Total usable credit</div>
+        <div className="kicker">Usable credit</div>
         <div className="amt tabular">{inr(customer.paidCredit + customer.bonusCredit)}</div>
         <div className="split">
           <div>
@@ -570,7 +603,7 @@ function Refer({ db, customer }: { db: DB; customer: Customer }) {
     <>
       <div className="card" style={{ textAlign: "center" }}>
         <div className="muted">Your unique code</div>
-        <h2 style={{ color: "var(--primary)", letterSpacing: 1, margin: "10px 0" }}>{mine.code}</h2>
+        <h2 style={{ letterSpacing: "0.08em", margin: "10px 0", fontSize: 28 }}>{mine.code}</h2>
         <p className="muted">You get ₹100 salon credit. They get ₹100 off the first paid visit. Reward stays Pending until that visit is completed.</p>
         <button
           className="btn btn-primary"
@@ -670,9 +703,10 @@ function OwnerApp({
       <main className="content">
         {view === "dash" && (
           <>
-            <h2>Owner dashboard</h2>
-            <p className="muted">Creative Salon · Pitampura, Delhi</p>
-            <div className="grid2" style={{ marginTop: 12 }}>
+            <span className="kicker">Today at the salon</span>
+            <h2 className="section-title">Owner desk</h2>
+            <p className="muted">Creative · Pitampura, Delhi</p>
+            <div className="grid2" style={{ marginTop: 16 }}>
               {[
                 ["Today's revenue", inr(dash.revenue), `${dash.completed} completed`],
                 ["Bookings today", String(dash.bookings), `${dash.pending} pending`],
@@ -681,16 +715,12 @@ function OwnerApp({
                 ["New customers", String(dash.fresh), "today"],
                 ["Wallet collected", inr(dash.walletToday), `+ ${inr(dash.bonusToday)} bonus`],
                 ["Outstanding credit", inr(dash.outstanding), "salon-wide"],
-                ["Reminder bookings", String(dash.reminderBookings), "from smart reminders"],
+                ["Reminder bookings", String(dash.reminderBookings), "from reminders"],
               ].map(([l, v, s]) => (
-                <div className="card" key={l}>
-                  <div className="muted" style={{ fontSize: 11, textTransform: "uppercase", fontWeight: 700 }}>
-                    {l}
-                  </div>
-                  <div className="tabular" style={{ fontFamily: "var(--display)", fontSize: 20, fontWeight: 700 }}>
-                    {v}
-                  </div>
-                  <div className="muted">{s}</div>
+                <div className="metric" key={l}>
+                  <div className="lab">{l}</div>
+                  <div className="val tabular">{v}</div>
+                  <div className="sub">{s}</div>
                 </div>
               ))}
             </div>
@@ -743,13 +773,14 @@ function OwnerApp({
       <nav className="nav">
         {(
           [
-            ["dash", "Dash"],
+            ["dash", "Desk"],
             ["bookings", "Bookings"],
             ["customers", "Clients"],
             ["wallet", "Wallet"],
           ] as const
         ).map(([id, label]) => (
           <button key={id} className={view === id ? "active" : ""} onClick={() => setView(id)}>
+            <NavIcon name={id === "customers" ? "clients" : id} />
             {label}
           </button>
         ))}
