@@ -2,15 +2,15 @@
   --bg: #efe8de;
   --surface: #fbf7f1;
   --surface-2: #e7dfd3;
-  --ink: #1a1511;
-  --muted: #6f665c;
-  --subtle: #8a8176;
-  --primary: #1a1511;
-  --primary-dark: #0c0a08;
+  --ink: #4a453e;
+  --muted: #8a837a;
+  --subtle: #9b948b;
+  --primary: #6f675d;
+  --primary-dark: #5a544c;
   --accent: #7a3b32;
   --accent-soft: #f3e4dc;
-  --border: color-mix(in oklab, var(--ink) 12%, transparent);
-  --border-strong: color-mix(in oklab, var(--ink) 22%, transparent);
+  --border: color-mix(in oklab, #6f675d 22%, transparent);
+  --border-strong: color-mix(in oklab, #6f675d 38%, transparent);
   --success: #3d5a45;
   --danger: #8b2e2e;
   --info: #3d4f5c;
@@ -70,7 +70,7 @@ input, select { font-family: inherit; font-size: 16px; }
   position: absolute;
   inset: 0 0 auto;
   height: 3px;
-  background: var(--ink);
+  background: var(--primary);
   z-index: 6;
 }
 @media (min-width: 480px) {
@@ -79,7 +79,7 @@ input, select { font-family: inherit; font-size: 16px; }
     min-height: calc(100dvh - 56px);
     border-radius: var(--radius-xl);
     overflow: hidden;
-    box-shadow: 0 30px 80px rgb(26 21 17 / 16%);
+    box-shadow: 0 30px 80px rgb(111 103 93 / 18%);
     border: 1px solid var(--border);
   }
 }
@@ -100,7 +100,7 @@ input, select { font-family: inherit; font-size: 16px; }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .logo {
   width: 34px; height: 34px; border-radius: var(--radius-sm);
-  background: var(--ink); color: var(--surface);
+  background: var(--primary); color: var(--surface);
   display: grid; place-items: center;
   font-family: var(--display); font-weight: 600; font-size: 18px;
   flex-shrink: 0;
@@ -151,7 +151,7 @@ input, select { font-family: inherit; font-size: 16px; }
   text-transform: uppercase; color: var(--subtle);
   transition: color var(--motion-quick) var(--ease-out);
 }
-.nav button.active { color: var(--ink); }
+.nav button.active { color: var(--primary); }
 .nav button svg { width: 18px; height: 18px; stroke-width: 1.6; }
 
 .btn {
@@ -162,7 +162,7 @@ input, select { font-family: inherit; font-size: 16px; }
   transition: transform var(--motion-quick) var(--ease-out), background var(--motion-quick) var(--ease-out);
 }
 .btn:active { transform: scale(0.985); }
-.btn-primary { background: var(--ink); color: var(--surface); }
+.btn-primary { background: var(--primary); color: var(--surface); }
 .btn-primary:hover { background: var(--primary-dark); }
 .btn-accent { background: var(--accent); color: #fbf7f1; }
 .btn-outline {
@@ -184,7 +184,7 @@ input, select { font-family: inherit; font-size: 16px; }
 .card.press:active { transform: scale(0.99); }
 
 .wallet {
-  background: var(--ink);
+  background: var(--primary);
   color: #f4eee6;
   border-radius: var(--radius-lg);
   padding: 22px 20px 18px;
@@ -253,7 +253,7 @@ input, select { font-family: inherit; font-size: 16px; }
   text-align: left;
   transition: border-color var(--motion-quick) var(--ease-out), background var(--motion-quick) var(--ease-out);
 }
-.pick.on { border-color: var(--ink); background: color-mix(in oklab, var(--ink) 4%, #fffcf8); }
+.pick.on { border-color: var(--primary); background: color-mix(in oklab, var(--primary) 8%, #fffcf8); }
 .pick .n { font-weight: 500; font-size: 14px; }
 .pick .m { font-size: 12px; color: var(--muted); margin-top: 3px; }
 
@@ -276,7 +276,7 @@ input, select { font-family: inherit; font-size: 16px; }
 }
 .field input:focus, .field select:focus {
   outline: none;
-  border-color: var(--ink);
+  border-color: var(--primary);
 }
 .row {
   display: flex;
@@ -303,14 +303,14 @@ input, select { font-family: inherit; font-size: 16px; }
 .bad { background: #f3e2e0; color: #6e2c2c; }
 .toast {
   position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%);
-  background: var(--ink); color: var(--surface);
+  background: var(--primary); color: var(--surface);
   padding: 10px 16px; border-radius: var(--radius-md);
   font-size: 13px; font-weight: 500; z-index: 50; max-width: 90%;
 }
 .empty { text-align: center; padding: 28px 12px; color: var(--muted); font-size: 14px; }
 .steps { display: flex; gap: 6px; margin-bottom: 16px; }
 .dot { flex: 1; height: 2px; border-radius: 1px; background: var(--border-strong); }
-.dot.on { background: var(--ink); }
+.dot.on { background: var(--primary); }
 .link {
   background: none; border: 0;
   color: var(--ink);
