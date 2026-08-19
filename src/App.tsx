@@ -288,7 +288,7 @@ function Home({
             Bonus<strong className="tabular">{inr(customer.bonusCredit)}</strong>
           </div>
         </div>
-        <button className="btn btn-sm" style={{ marginTop: 16, background: "rgb(251 247 241 / 0.1)", color: "#fbf7f1", border: "1px solid rgb(251 247 241 / 0.18)" }} onClick={() => setView("wallet")}>
+        <button className="btn btn-sm btn-outline" style={{ marginTop: 16 }} onClick={() => setView("wallet")}>
           View ledger
         </button>
       </div>
