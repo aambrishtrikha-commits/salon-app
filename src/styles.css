@@ -384,6 +384,64 @@ input, select { font-family: inherit; font-size: 16px; color-scheme: dark; }
   color: var(--ink);
 }
 
+.wa-thread {
+  margin: 16px 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wa-bubble {
+  max-width: 88%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.wa-bubble p { margin: 0; }
+.wa-bubble span {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--subtle);
+}
+.wa-bubble.in {
+  align-self: flex-start;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+.wa-bubble.out {
+  align-self: flex-end;
+  background: #1e3a2f;
+  border: 1px solid color-mix(in oklab, #25d366 28%, transparent);
+  color: #e8f6ee;
+  border-bottom-right-radius: 4px;
+}
+.wa-compose {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: sticky;
+  bottom: 8px;
+}
+.wa-compose input {
+  flex: 1;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: #322e29;
+  color: var(--ink);
+}
+.wa-compose .btn { width: auto; min-height: 48px; }
+.wa-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 14px; }
+.wa-filters .chip { border: 0; cursor: pointer; background: var(--surface-2); color: var(--muted); }
+.wa-filters .chip.info { background: #1b2228; color: #b7c6d1; }
+.wa-body { white-space: pre-wrap; font-size: 14px; line-height: 1.45; margin: 4px 0 8px; }
+.wa-card { padding-top: 14px; }
+
 @media (prefers-reduced-motion: reduce) {
   .btn, .pick, .nav button { transition: none; }
 }

@@ -48,6 +48,18 @@ export type Referral = {
   refereePhone?: string;
   status: "Pending" | "Released" | "Cancelled";
 };
+export type WaKind = "booking" | "receipt" | "reminder" | "agent";
+export type WaStatus = "Sent" | "Queued" | "Held";
+export type WaMessage = {
+  id: string;
+  customerId: string;
+  kind: WaKind;
+  status: WaStatus;
+  direction: "out" | "in";
+  body: string;
+  at: string;
+  note?: string;
+};
 export type Reminder = {
   id: string;
   customerId: string;
@@ -76,11 +88,12 @@ export type DB = {
   txs: WalletTx[];
   referrals: Referral[];
   reminders: Reminder[];
+  messages: WaMessage[];
 };
 
 export const SLOTS = ["10:00", "11:00", "12:00", "14:00", "15:30", "17:00", "18:30"];
 export const TODAY = "2026-08-19";
-const KEY = "creative-salon-v1";
+const KEY = "creative-salon-v2";
 
 function nid(p: string) {
   return `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
@@ -89,6 +102,108 @@ function addDays(iso: string, days: number) {
   const d = new Date(iso + "T00:00:00");
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+function nowStamp() {
+  return new Date().toLocaleString("en-IN", { hour12: true });
+}
+
+export function pushWa(
+  db: DB,
+  input: Omit<WaMessage, "id" | "at"> & { at?: string },
+): WaMessage {
+  const row: WaMessage = {
+    ...input,
+    id: nid("wa"),
+    at: input.at ?? nowStamp(),
+  };
+  db.messages.unshift(row);
+  return row;
+}
+
+export function sendBookingWa(db: DB, booking: Booking) {
+  const c = db.customers.find((x) => x.id === booking.customerId);
+  const svc = db.services.find((x) => x.id === booking.serviceId);
+  const st = db.staff.find((x) => x.id === booking.staffId);
+  if (!c) return;
+  const addons = booking.addons.length ? ` · ${booking.addons.map((a) => a.name).join(", ")}` : "";
+  const body = `${c.name.split(" ")[0]}, Creative Salon Pitampura.\n${svc?.name ?? "Service"} confirm — ${booking.date}, ${booking.slot}, ${st?.name.split(" ")[0]}.${addons}\nTotal ${inr(booking.total)}. Wallet se bhi chalta hai.`;
+  pushWa(db, {
+    customerId: c.id,
+    kind: "booking",
+    status: c.consent ? "Sent" : "Held",
+    direction: "out",
+    body,
+    note: c.consent ? "Simulated WhatsApp · no WABA yet" : "Not sent — promotional consent off",
+  });
+}
+
+export function sendReceiptWa(db: DB, customerId: string, pay: number, bonus: number) {
+  const c = db.customers.find((x) => x.id === customerId);
+  if (!c) return;
+  const body = `Wallet top-up: ${inr(pay)} paid${bonus ? ` + ${inr(bonus)} bonus` : ""}.\nUsable ${inr(c.paidCredit + c.bonusCredit)}. Creative Salon pe hi. Cash nahi nikal sakte.`;
+  pushWa(db, {
+    customerId: c.id,
+    kind: "receipt",
+    status: "Sent",
+    direction: "out",
+    body,
+    note: "Operational receipt · not a promo blast",
+  });
+}
+
+export function sendReminderWa(db: DB, reminder: Reminder) {
+  const c = db.customers.find((x) => x.id === reminder.customerId);
+  const svc = db.services.find((x) => x.id === reminder.serviceId);
+  if (!c) return;
+  const body = `${c.name.split(" ")[0]}, ${svc?.name ?? "service"} due (${svc?.reminderDays ?? db.settings.reminderDays}-day cycle).\nBook Now — Rajesh / Priya / Amit. Reply BOOK ya app kholo.\nOpt-out: profile pe Promotional messages band.`;
+  pushWa(db, {
+    customerId: c.id,
+    kind: "reminder",
+    status: !c.consent ? "Held" : reminder.dueDate <= TODAY ? "Sent" : "Queued",
+    direction: "out",
+    body,
+    note: c.consent ? "Reminder · consent on" : "Held — customer opted out",
+  });
+}
+
+export function agentReply(text: string, customer: Customer): string {
+  const t = text.toLowerCase();
+  const first = customer.name.split(" ")[0];
+  if (/wallet|balance|credit|paise/.test(t)) {
+    return `${first}, salon wallet ${inr(customer.paidCredit + customer.bonusCredit)} (${inr(customer.paidCredit)} paid + ${inr(customer.bonusCredit)} bonus). Cash nahi nikal sakte.`;
+  }
+  if (/4|slot|free|kal|aaj|time|available/.test(t)) {
+    return `Haan ${first}, Rajesh kal 15:30 ya 17:00 pe free. 16:00 slot nahi hai. Confirm karun 15:30? Beard trim add-on nahi lagaya — bolo to +₹99.`;
+  }
+  if (/book|haircut|cut|beard/.test(t)) {
+    return `Men's haircut ₹299 / 30 min. Rajesh, Priya, Amit. Date aur time bhejiye — main slot lock kar dunga.`;
+  }
+  return `${first}, Creative Salon Pitampura. Haircut, beard, wallet, booking — likh ke bhejiye. Add-on kabhi auto nahi lagta.`;
+}
+
+export function sendAgentTurn(db: DB, customerId: string, incoming: string) {
+  const c = db.customers.find((x) => x.id === customerId);
+  if (!c) throw new Error("Customer not found");
+  pushWa(db, {
+    customerId,
+    kind: "agent",
+    status: "Sent",
+    direction: "in",
+    body: incoming,
+    note: "Customer WhatsApp (simulated)",
+  });
+  const reply = agentReply(incoming, c);
+  pushWa(db, {
+    customerId,
+    kind: "agent",
+    status: "Sent",
+    direction: "out",
+    body: reply,
+    note: "Text agent · Hindi · salon-owned, not a marketplace",
+  });
+  saveDB(db);
+  return reply;
 }
 
 function seed(): DB {
@@ -160,13 +275,89 @@ function seed(): DB {
       { id: "rem_302", customerId: "cust_03", serviceId: "svc_01", dueDate: "2026-09-13", status: "Scheduled" },
       { id: "rem_303", customerId: "cust_02", serviceId: "svc_02", dueDate: "2026-09-23", status: "Scheduled" },
     ],
+    messages: [
+      {
+        id: "wa_01",
+        customerId: "cust_01",
+        kind: "agent",
+        status: "Sent",
+        direction: "out",
+        body: "Haan Ankit, Rajesh kal 15:30 ya 17:00 pe free. 16:00 slot nahi hai. Confirm karun 15:30? Beard trim add-on nahi lagaya — bolo to +₹99.",
+        at: "20 Aug 2026, 11:06 am",
+        note: "Text agent · Hindi · salon-owned",
+      },
+      {
+        id: "wa_02",
+        customerId: "cust_01",
+        kind: "agent",
+        status: "Sent",
+        direction: "in",
+        body: "Kal 4 baje Rajesh free hai?",
+        at: "20 Aug 2026, 11:05 am",
+        note: "Customer WhatsApp (simulated)",
+      },
+      {
+        id: "wa_03",
+        customerId: "cust_01",
+        kind: "reminder",
+        status: "Sent",
+        direction: "out",
+        body: "Ankit, Men's Haircut due (25-day cycle).\nBook Now — Rajesh 11:00 / 12:00 / 14:00.\nReply BOOK ya app kholo. Opt-out: profile pe Promotional messages band.",
+        at: "19 Aug 2026, 10:00 am",
+        note: "Reminder · consent on",
+      },
+      {
+        id: "wa_04",
+        customerId: "cust_01",
+        kind: "receipt",
+        status: "Sent",
+        direction: "out",
+        body: "Wallet top-up: ₹500 paid + ₹50 bonus.\nUsable ₹550. Creative Salon pe hi. Cash nahi nikal sakte.",
+        at: "12 Aug 2026, 4:00 pm",
+        note: "Operational receipt · not a promo blast",
+      },
+      {
+        id: "wa_05",
+        customerId: "cust_01",
+        kind: "booking",
+        status: "Sent",
+        direction: "out",
+        body: "Ankit, Creative Salon Pitampura.\nMen's Haircut confirm — 20 Aug, 11:00, Rajesh.\nTotal ₹299. Wallet se bhi chalta hai.",
+        at: "18 Aug 2026, 6:12 pm",
+        note: "Simulated WhatsApp · no WABA yet",
+      },
+      {
+        id: "wa_06",
+        customerId: "cust_03",
+        kind: "booking",
+        status: "Sent",
+        direction: "out",
+        body: "Rohit, Creative Salon Pitampura.\nMen's Haircut confirm — 19 Aug, 16:00, Rajesh · Beard Trim.\nTotal ₹398.",
+        at: "19 Aug 2026, 9:40 am",
+        note: "Simulated WhatsApp · no WABA yet",
+      },
+      {
+        id: "wa_07",
+        customerId: "cust_04",
+        kind: "reminder",
+        status: "Held",
+        direction: "out",
+        body: "Priya, Women's Haircut due. Book Now — Priya / Amit.",
+        at: "19 Aug 2026, 10:00 am",
+        note: "Held — customer opted out. Not sent.",
+      },
+    ],
   };
 }
 
 export function loadDB(): DB {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as DB;
+    if (raw) {
+      const parsed = JSON.parse(raw) as DB;
+      if (!parsed.messages) parsed.messages = [];
+      return parsed;
+    }
   } catch {
     /* ignore */
   }
@@ -256,6 +447,7 @@ export function createBooking(
     referralCode: input.referralCode,
   };
   db.bookings.unshift(b);
+  sendBookingWa(db, b);
   db.reminders.forEach((r) => {
     if (
       r.customerId === input.customerId &&
@@ -285,14 +477,16 @@ export function completeVisit(db: DB, bookingId: string) {
       r.status = "Expired";
     }
   });
-  if (svc && svc.reminderDays > 0 && c?.consent) {
-    db.reminders.push({
+  if (svc && svc.reminderDays > 0) {
+    const rem: Reminder = {
       id: nid("rem"),
       customerId: b.customerId,
       serviceId: b.serviceId,
       dueDate: addDays(b.date, svc.reminderDays),
-      status: "Scheduled",
-    });
+      status: c?.consent ? "Scheduled" : "OptedOut",
+    };
+    db.reminders.push(rem);
+    sendReminderWa(db, rem);
   }
   if (b.referralCode) {
     const ref = db.referrals.find((r) => r.code === b.referralCode && r.status === "Pending");
@@ -349,6 +543,7 @@ export function topUp(db: DB, customerId: string, amount: number) {
       at,
     });
   }
+  sendReceiptWa(db, customerId, pay, bonus);
   saveDB(db);
   return { pay, bonus };
 }
@@ -392,6 +587,20 @@ export function setConsent(db: DB, customerId: string, consent: boolean) {
   if (!consent) {
     db.reminders.forEach((r) => {
       if (r.customerId === customerId && r.status === "Scheduled") r.status = "OptedOut";
+    });
+    db.messages.forEach((m) => {
+      if (m.customerId === customerId && m.kind === "reminder" && m.status === "Queued") {
+        m.status = "Held";
+        m.note = "Held — customer opted out. Not sent.";
+      }
+    });
+    pushWa(db, {
+      customerId,
+      kind: "reminder",
+      status: "Held",
+      direction: "out",
+      body: "Promotional / reminder WhatsApp stopped. Booking confirms and wallet receipts still go (operational).",
+      note: "Opt-out recorded",
     });
   }
   saveDB(db);
@@ -440,5 +649,7 @@ export function dashboard(db: DB) {
     bonusToday,
     outstanding,
     reminderBookings: db.reminders.filter((r) => r.status === "Booked").length,
+    waSent: (db.messages ?? []).filter((m) => m.status === "Sent" && m.direction === "out").length,
+    waHeld: (db.messages ?? []).filter((m) => m.status === "Held").length,
   };
 }

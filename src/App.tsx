@@ -18,12 +18,13 @@ import {
   setConsent,
   setStatus,
   topUp,
+  sendAgentTurn,
 } from "./store";
 import { identify, tag, track } from "./clarity";
 
 type Role = "customer" | "owner";
-type CView = "login" | "home" | "book" | "wallet" | "bookings" | "refer" | "profile";
-type OView = "dash" | "bookings" | "customers" | "wallet" | "settings" | "reports";
+type CView = "login" | "home" | "book" | "wallet" | "bookings" | "refer" | "profile" | "chat";
+type OView = "dash" | "bookings" | "customers" | "wallet" | "settings" | "reports" | "messages";
 
 const DEMOS = [
   { phone: "9876543210", name: "Ankit Mehra" },
@@ -63,7 +64,15 @@ export function App() {
   const [msg, setMsg] = useState("");
 
   const customer = db.customers.find((c) => c.id === customerId) ?? null;
-  const refresh = (next: DB) => setDb({ ...next, customers: [...next.customers], bookings: [...next.bookings], txs: [...next.txs] });
+  const refresh = (next: DB) =>
+    setDb({
+      ...next,
+      customers: [...next.customers],
+      bookings: [...next.bookings],
+      txs: [...next.txs],
+      reminders: [...next.reminders],
+      messages: [...(next.messages ?? [])],
+    });
 
   useEffect(() => {
     const saved = sessionStorage.getItem("cs-customer");
@@ -184,6 +193,9 @@ function CustomerApp({
         {view === "profile" && customer && (
           <Profile db={db} customer={customer} onRefresh={onRefresh} onLogout={onLogout} toast={toast} />
         )}
+        {view === "chat" && customer && (
+          <CustomerChat db={db} customer={customer} onRefresh={onRefresh} toast={toast} />
+        )}
         {view !== "login" && !customer && <Login onEnter={onEnter} onOwner={onOwner} />}
       </main>
       {view !== "login" && customer && (
@@ -232,6 +244,14 @@ function NavIcon({ name }: { name: string }) {
       </svg>
     );
   }
+  if (name === "messages" || name === "chat") {
+    return (
+      <svg viewBox="0 0 24 24" {...p}>
+        <path d="M4 6.5h10.5A1.5 1.5 0 0 1 16 8v5.5a1.5 1.5 0 0 1-1.5 1.5H9l-4 3v-3H5.5A1.5 1.5 0 0 1 4 13.5z" />
+        <path d="M16 9.5h3.5A1.5 1.5 0 0 1 21 11v6.5L18 15h-2" />
+      </svg>
+    );
+  }
   return (
     <svg viewBox="0 0 24 24" {...p}>
       <circle cx="9" cy="8" r="3" />
@@ -249,7 +269,7 @@ function Login({ onEnter, onOwner }: { onEnter: (p: string, n?: string) => void;
       </div>
       <span className="kicker">Pitampura · Delhi</span>
       <h2 className="hero-title">Your salon. On your phone.</h2>
-      <p className="lede">Book Rajesh, Priya or Amit. Keep a wallet. Bring a friend back.</p>
+      <p className="lede">Book Rajesh. Keep a wallet. WhatsApp goes in your salon’s name — not Billu’s.</p>
       <label className="field" style={{ marginTop: 22 }}>
         <span>Mobile number</span>
         <input inputMode="numeric" maxLength={10} placeholder="98765 43210" data-clarity-mask="true" autoComplete="off" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} />
@@ -342,6 +362,11 @@ function Home({
           <div className="muted">Booking history</div>
         </button>
       </div>
+      <button className="card press" style={{ marginTop: 10 }} onClick={() => setView("chat")}>
+        <div className="kicker">WhatsApp</div>
+        <strong>Message the salon</strong>
+        <div className="muted">Hindi text agent · “Kal 4 baje Rajesh?”</div>
+      </button>
       <h3 className="section-title" style={{ marginTop: 20 }}>Recent visits</h3>
       <div className="card">
         {done.length === 0 && <div className="empty">No visits yet. Book your first service.</div>}
@@ -519,7 +544,7 @@ function Book({
             className="btn btn-primary"
             onClick={() => {
               try {
-                const row = createBooking(db, {
+                createBooking(db, {
                   customerId: customer.id,
                   serviceId: serviceId!,
                   staffId: staffId!,
@@ -530,7 +555,7 @@ function Book({
                 });
                 onRefresh();
                 track("booking_confirmed");
-                toast(`Booking confirmed · ${row.id}`);
+                toast(`Booking confirmed. WhatsApp sent (simulated).`);
                 setView("bookings");
               } catch (e) {
                 toast(e instanceof Error ? e.message : "Could not book");
@@ -571,7 +596,7 @@ function Wallet({ db, customer, onRefresh, toast }: { db: DB; customer: Customer
           const r = topUp(db, customer.id, 500);
           onRefresh();
           track("wallet_topup");
-          toast(`₹${r.pay + r.bonus} credited. Receipt sent (simulated).`);
+          toast(`₹${r.pay + r.bonus} credited. WhatsApp receipt sent (simulated).`);
         }}
       >
         Top-up ₹500 (get ₹50 bonus)
@@ -701,6 +726,106 @@ function Profile({
   );
 }
 
+
+function CustomerChat({
+  db,
+  customer,
+  onRefresh,
+  toast,
+}: {
+  db: DB;
+  customer: Customer;
+  onRefresh: () => void;
+  toast: (m: string) => void;
+}) {
+  const [text, setText] = useState("");
+  const mine = (db.messages ?? []).filter((m) => m.customerId === customer.id).slice().reverse();
+  return (
+    <>
+      <span className="kicker">Simulated WhatsApp</span>
+      <h2 className="section-title">Salon chat</h2>
+      <p className="muted">Creative Salon ke naam se. Marketplace nahi. Try: “Kal 4 baje Rajesh?”</p>
+      <div className="wa-thread">
+        {mine.length === 0 && <div className="empty">Abhi koi message nahi.</div>}
+        {mine.map((m) => (
+          <div key={m.id} className={`wa-bubble ${m.direction}`}>
+            <p>{m.body}</p>
+            <span>
+              {m.at} · {m.status}
+            </span>
+          </div>
+        ))}
+      </div>
+      <form
+        className="wa-compose"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const q = text.trim();
+          if (!q) return;
+          try {
+            sendAgentTurn(db, customer.id, q);
+            onRefresh();
+            setText("");
+            track("wa_agent");
+          } catch (err) {
+            toast(err instanceof Error ? err.message : "Could not send");
+          }
+        }}
+      >
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type on WhatsApp…" />
+        <button className="btn btn-primary btn-sm" type="submit">
+          Send
+        </button>
+      </form>
+    </>
+  );
+}
+
+function OwnerInbox({ db }: { db: DB }) {
+  const [filter, setFilter] = useState<"all" | "Sent" | "Held" | "agent">("all");
+  const rows = (db.messages ?? []).filter((m) => {
+    if (filter === "all") return true;
+    if (filter === "agent") return m.kind === "agent";
+    return m.status === filter;
+  });
+  return (
+    <>
+      <span className="kicker">Your clients · your name</span>
+      <h2 className="section-title">WhatsApp inbox</h2>
+      <p className="muted">Demo only. Real WhatsApp Business API is connected when a salon says yes. Opt-out is respected.</p>
+      <div className="wa-filters">
+        {(["all", "Sent", "Held", "agent"] as const).map((f) => (
+          <button key={f} className={`chip ${filter === f ? "info" : ""}`} onClick={() => setFilter(f)}>
+            {f === "all" ? "All" : f === "Held" ? "Held / opt-out" : f === "agent" ? "Agent" : "Sent"}
+          </button>
+        ))}
+      </div>
+      {rows.length === 0 && <div className="empty">No messages in this filter.</div>}
+      {rows.map((m) => {
+        const c = db.customers.find((x) => x.id === m.customerId);
+        return (
+          <div className="card wa-card" key={m.id}>
+            <div className="row" style={{ paddingTop: 0 }}>
+              <div>
+                <strong>{c?.name ?? "Client"}</strong>
+                <div className="muted">
+                  +91 {c?.phone} · {m.kind} · {m.direction === "in" ? "in" : "out"}
+                </div>
+              </div>
+              <span className={`chip ${m.status === "Sent" ? "ok" : m.status === "Held" ? "bad" : "warn"}`}>{m.status}</span>
+            </div>
+            <p className="wa-body">{m.body}</p>
+            <div className="muted">
+              {m.at}
+              {m.note ? ` · ${m.note}` : ""}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 function OwnerApp({
   db,
   view,
@@ -741,6 +866,7 @@ function OwnerApp({
                 ["Wallet collected", inr(dash.walletToday), `+ ${inr(dash.bonusToday)} bonus`],
                 ["Outstanding credit", inr(dash.outstanding), "salon-wide"],
                 ["Reminder bookings", String(dash.reminderBookings), "from reminders"],
+                ["WhatsApp sent", String(dash.waSent), `${dash.waHeld} held / opted-out`],
               ].map(([l, v, s]) => (
                 <div className="metric" key={l}>
                   <div className="lab">{l}</div>
@@ -750,7 +876,10 @@ function OwnerApp({
               ))}
             </div>
             <div className="grid2">
-              <button className="btn btn-primary" onClick={() => setView("bookings")}>
+              <button className="btn btn-primary" onClick={() => { track("open_inbox"); setView("messages"); }}>
+                WhatsApp inbox
+              </button>
+              <button className="btn btn-outline" onClick={() => setView("bookings")}>
                 Manage bookings
               </button>
               <button className="btn btn-outline" onClick={() => setView("customers")}>
@@ -759,10 +888,12 @@ function OwnerApp({
               <button className="btn btn-outline" onClick={() => setView("wallet")}>
                 Wallet ledger
               </button>
-              <button className="btn btn-outline" onClick={() => setView("settings")}>
+            </div>
+            <p>
+              <button className="link" onClick={() => setView("settings")}>
                 Settings
               </button>
-            </div>
+            </p>
             <p>
               <button className="link" onClick={() => setView("reports")}>
                 Open reports
@@ -794,14 +925,15 @@ function OwnerApp({
         {view === "wallet" && <OwnerWallet db={db} onRefresh={onRefresh} toast={toast} />}
         {view === "settings" && <OwnerSettings db={db} onRefresh={onRefresh} toast={toast} />}
         {view === "reports" && <OwnerReports db={db} />}
+        {view === "messages" && <OwnerInbox db={db} />}
       </main>
       <nav className="nav">
         {(
           [
             ["dash", "Desk"],
+            ["messages", "Inbox"],
             ["bookings", "Bookings"],
             ["customers", "Clients"],
-            ["wallet", "Wallet"],
           ] as const
         ).map(([id, label]) => (
           <button key={id} className={view === id ? "active" : ""} onClick={() => setView(id)}>
