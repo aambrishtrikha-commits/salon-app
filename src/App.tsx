@@ -19,6 +19,7 @@ import {
   setStatus,
   topUp,
 } from "./store";
+import { identify, tag, track } from "./clarity";
 
 type Role = "customer" | "owner";
 type CView = "login" | "home" | "book" | "wallet" | "bookings" | "refer" | "profile";
@@ -72,6 +73,18 @@ export function App() {
     }
   }, []);
 
+  useEffect(() => {
+    tag("app", "creative-salon");
+    tag("role", role);
+    const screen = role === "customer" ? cView : `owner_${oView}`;
+    tag("screen", screen);
+    track(`view_${screen}`);
+    if (customer) {
+      tag("demo_user", customer.name);
+      identify(customer.id, customer.name);
+    }
+  }, [role, cView, oView, customerId]);
+
   function enter(phone: string, name?: string) {
     try {
       const c = lookupOrCreate(db, phone, name);
@@ -79,6 +92,7 @@ export function App() {
       setCustomerId(c.id);
       sessionStorage.setItem("cs-customer", c.id);
       setCView("home");
+      track(name ? "demo_guest" : "phone_login");
       toast(setMsg, `Welcome, ${c.name.split(" ")[0]}`);
     } catch (e) {
       toast(setMsg, e instanceof Error ? e.message : "Lookup failed");
@@ -96,6 +110,7 @@ export function App() {
           onOwner={() => {
             setRole("owner");
             setOView("dash");
+            track("open_owner_desk");
           }}
           onEnter={enter}
           onRefresh={() => refresh(db)}
@@ -237,7 +252,7 @@ function Login({ onEnter, onOwner }: { onEnter: (p: string, n?: string) => void;
       <p className="lede">Book Rajesh, Priya or Amit. Keep a wallet. Bring a friend back.</p>
       <label className="field" style={{ marginTop: 22 }}>
         <span>Mobile number</span>
-        <input inputMode="numeric" maxLength={10} placeholder="98765 43210" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} />
+        <input inputMode="numeric" maxLength={10} placeholder="98765 43210" data-clarity-mask="true" autoComplete="off" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} />
       </label>
       <button className="btn btn-primary" onClick={() => onEnter(phone)}>
         Continue
@@ -304,6 +319,7 @@ function Home({
             onClick={() => {
               setConsent(db, customer.id, false);
               onRefresh();
+              track("reminder_opt_out");
               toast("Opted out of reminder messages");
             }}
           >
@@ -446,7 +462,10 @@ function Book({
                 key={a.id}
                 className={`pick ${on ? "on" : ""}`}
                 style={{ width: "100%", marginTop: 8, display: "flex", justifyContent: "space-between" }}
-                onClick={() => setAddons((p) => (on ? p.filter((x) => x.id !== a.id) : [...p, a]))}
+                onClick={() => {
+                  setAddons((p) => (on ? p.filter((x) => x.id !== a.id) : [...p, a]));
+                  track(on ? "addon_removed" : "addon_added");
+                }}
               >
                 <span>
                   <strong>{a.name}</strong>
@@ -510,6 +529,7 @@ function Book({
                   createdBy: "customer",
                 });
                 onRefresh();
+                track("booking_confirmed");
                 toast(`Booking confirmed · ${row.id}`);
                 setView("bookings");
               } catch (e) {
@@ -550,6 +570,7 @@ function Wallet({ db, customer, onRefresh, toast }: { db: DB; customer: Customer
         onClick={() => {
           const r = topUp(db, customer.id, 500);
           onRefresh();
+          track("wallet_topup");
           toast(`₹${r.pay + r.bonus} credited. Receipt sent (simulated).`);
         }}
       >
@@ -612,6 +633,7 @@ function Refer({ db, customer }: { db: DB; customer: Customer }) {
           className="btn btn-primary"
           onClick={() => {
             void navigator.clipboard?.writeText(`Use my code ${mine.code} at Creative Salon, Pitampura & get ₹100 off!`);
+            track("referral_share");
           }}
         >
           Copy share link
@@ -809,6 +831,7 @@ function OwnerBookings({ db, onRefresh, toast }: { db: DB; onRefresh: () => void
               createBooking(db, { ...form, addons: [], createdBy: "owner" });
               onRefresh();
               setOpen(false);
+              track("owner_walkin");
               toast("Walk-in booked");
             } catch (err) {
               toast(err instanceof Error ? err.message : "Could not book");
@@ -875,6 +898,7 @@ function OwnerBookings({ db, onRefresh, toast }: { db: DB; onRefresh: () => void
                 onClick={() => {
                   setStatus(db, b.id, "Completed");
                   onRefresh();
+                  track("owner_complete_visit");
                   toast("Visit completed. Next due date calculated. Reminder scheduled.");
                 }}
               >
